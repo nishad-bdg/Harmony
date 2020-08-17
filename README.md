@@ -2,7 +2,7 @@
 A multi-purpose Discord bot for the Lucid Academy Discord server
 
 ## Setup
-The first step is to create a config.py file in the root directory with the following template:
+The first step is to create a `config.py` file in the root directory with the following template:
 ```
 EXTENSIONS = [
   'extensions.statistics'
