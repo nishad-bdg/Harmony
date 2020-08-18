@@ -10,12 +10,12 @@ class Statistics(commands.Cog):
         self.bot = bot
 
     async def update_status(self, member):
-        query = 'SELECT status FROM status WHERE user_id=%s ORDER BY id DESC'
+        query = 'SELECT status FROM statuses WHERE user_id=%s ORDER BY id DESC'
         status = await self.bot.db.fetchone(query, member.id)
         if status is not None and status[0] == str(member.status):
             return
 
-        query = f"INSERT IGNORE INTO status (user_id, status, updated_at) VALUES (%s, %s, %s)"
+        query = f"INSERT IGNORE INTO statuses (user_id, status, updated_at) VALUES (%s, %s, %s)"
         await self.bot.db.execute(query, (member.id, str(member.status), datetime.utcnow()))
 
     async def update_activities(self, member):
