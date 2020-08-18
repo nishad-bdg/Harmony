@@ -52,6 +52,10 @@ class Statistics(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
+        for member in self.bot.guild.members:
+            await self.update_status(member)
+            await self.update_activities(member)
+
         for user in self.bot.users:
             await self.update_avatar(user)
             await self.update_username(user)
