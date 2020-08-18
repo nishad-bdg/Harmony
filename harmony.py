@@ -29,6 +29,10 @@ class Harmony(commands.Bot):
     async def on_command_error(self, ctx, error):
         print(error)
 
+    @property
+    def guild(self):
+        return self.get_guild(config.GUILD_ID)
+
     def run(self):
         super().run(config.TOKEN)
 
