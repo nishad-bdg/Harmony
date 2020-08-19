@@ -1,32 +1,32 @@
 from datetime import datetime
 from discord.ext import commands
 import discord
-import os
 import json
+import os
 
 
 class Statistics(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    async def update_status(self, member):
-        query = 'SELECT status FROM statuses WHERE user_id=%s ORDER BY id DESC'
-        status = await self.bot.db.fetchone(query, member.id)
-        if status is not None and status[0] == str(member.status):
+    async def update_statistic(self, member, attribute, table):
+        query = f'SELECT {attribute} FROM {table} WHERE user_id=%s ORDER BY id DESC'
+        entry = await self.bot.db.fetchone(query, member.id)
+        if entry is not None and entry[0] == str(getattr(member, attribute, member)):
             return
 
-        query = f"INSERT IGNORE INTO statuses (user_id, status, updated_at) VALUES (%s, %s, %s)"
-        await self.bot.db.execute(query, (member.id, str(member.status), datetime.utcnow()))
+        query = f'INSERT IGNORE INTO {table} (user_id, {attribute}, updated_at) VALUES (%s, %s, %s)'
+        await self.bot.db.execute(query, (member.id, str(getattr(member, attribute, member)), datetime.utcnow()))
 
-    async def update_activities(self, member):
-        query = 'SELECT activities FROM activities WHERE user_id=%s ORDER BY id DESC'
-        activities = await self.bot.db.fetchone(query, member.id)
-        activities_ = json.dumps([activity.to_dict() for activity in member.activities])
-        if activities is not None and activities[0] == activities_:
+    async def update_batch_statistic(self, member, attribute, table):
+        query = f'SELECT {attribute} FROM {table} WHERE user_id=%s ORDER BY id DESC'
+        entries = await self.bot.db.fetchone(query, member.id)
+        batch = json.dumps([x.to_dict() for x in getattr(member, attribute)])
+        if entries is not None and entries[0] == batch:
             return
 
-        query = f"INSERT IGNORE INTO activities (user_id, activities, updated_at) VALUES (%s, %s, %s)"
-        await self.bot.db.execute(query, (member.id, activities_, datetime.utcnow()))
+        query = f'INSERT IGNORE INTO {table} (user_id, activities, updated_at) VALUES (%s, %s, %s)'
+        await self.bot.db.execute(query, (member.id, batch, datetime.utcnow()))
 
     async def update_avatar(self, user):
         path = f'resources/avatars/{user.avatar}.webp'
@@ -41,47 +41,53 @@ class Statistics(commands.Cog):
         query = 'INSERT IGNORE INTO avatars (user_id, avatar_hash, updated_at)VALUES (%s, %s, %s)'
         await self.bot.db.execute(query, (user.id, user.avatar, datetime.utcnow()))
 
-    async def update_username(self, user):
-        query = 'SELECT username FROM usernames WHERE user_id=%s ORDER BY id DESC'
-        username = await self.bot.db.fetchone(query, user.id)
-        if username is not None and username[0] == str(user):
-            return
-
-        query = f"INSERT IGNORE INTO usernames (user_id, username, updated_at) VALUES (%s, %s, %s)"
-        await self.bot.db.execute(query, (user.id, str(user), datetime.utcnow()))
-
     @commands.Cog.listener()
     async def on_ready(self):
         for member in self.bot.guild.members:
-            await self.update_status(member)
-            await self.update_activities(member)
+            await self.update_batch_statistic(member, 'activities', 'activities')
+            await self.update_statistic(member, 'nick', 'nicknames')
+            await self.update_statistic(member, 'status', 'statuses')
 
         for user in self.bot.users:
             await self.update_avatar(user)
-            await self.update_username(user)
+            await self.update_statistic(user, 'discriminator', 'discriminators')
+            await self.update_statistic(user, 'name', 'names')
+            await self.update_statistic(user, 'username', 'usernames')
 
     @commands.Cog.listener()
     async def on_member_join(self, member):
-        await self.update_status(member)
-        await self.update_activities(member)
         await self.update_avatar(member)
-        await self.update_username(member)
+        await self.update_batch_statistic(member, 'activities', 'activities')
+        await self.update_statistic(member, 'discriminator', 'discriminators')
+        await self.update_statistic(member, 'name', 'names')
+        await self.update_statistic(member, 'nick', 'nicknames')
+        await self.update_statistic(member, 'status', 'statuses')
+        await self.update_statistic(member, 'username', 'usernames')
 
     @commands.Cog.listener()
     async def on_member_update(self, before, after):
-        if before.status != after.status:
-            await self.update_status(after)
-
         if before.activities != after.activities:
-            await self.update_activities(after)
+            await self.update_batch_statistic(after, 'activities', 'activities')
+
+        if before.nick != after.nick:
+            await self.update_statistic(after, 'nick', 'nicknames')
+
+        if before.status != after.status:
+            await self.update_statistic(after, 'status', 'statuses')
 
     @commands.Cog.listener()
     async def on_user_update(self, before, after):
         if before.avatar != after.avatar:
             await self.update_avatar(after)
 
+        if before.discriminator != after.discriminator:
+            await self.update_statistic(after, 'discriminator', 'discriminators')
+
+        if before.name != after.name:
+            await self.update_statistic(after, 'name', 'names')
+
         if before.name != after.name or before.discriminator != after.discriminator:
-            await self.update_username(after)
+            await self.update_statistic(after, 'username', 'usernames')
 
 
 def setup(bot):
