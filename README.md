@@ -8,7 +8,7 @@ EXTENSIONS = [
   'extensions.statistics'
 ]
 PREFIX = '?'
-token = 'PUT YOUR TOKEN HERE'
+TOKEN = 'PUT YOUR TOKEN HERE'
 MYSQL_DATABASE = ''
 MYSQL_HOST = ''
 MYSQL_PASSWORD = ''
